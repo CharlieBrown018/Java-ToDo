@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.todo.controller.MainController"
+      spacing="20"
+      style="-fx-padding: 24; -fx-background-color: #F3F4F6;"
+      stylesheets="@../css/style.css">
+
+    <!-- App Title -->
+    <Label text="Todo App" styleClass="app-title"/>
+
+    <!-- Input Card -->
+    <VBox styleClass="card">
+        <VBox spacing="16">
+            <!-- Keep the original fx:id references -->
+            <TextField fx:id="titleField" promptText="What needs to be done?" styleClass="modern-input"/>
+            <TextArea fx:id="descriptionField"
+                      promptText="Add details..."
+                      styleClass="modern-input"
+                      wrapText="true"
+                      prefRowCount="3"
+                      VBox.vgrow="SOMETIMES"/>
+
+            <HBox spacing="16">
+                <DatePicker fx:id="dueDatePicker" promptText="Due Date" styleClass="modern-date-picker"/>
+                <ComboBox fx:id="statusComboBox" promptText="Status" styleClass="modern-combo"/>
+            </HBox>
+
+            <!-- Action Buttons -->
+            <HBox spacing="12" alignment="CENTER_RIGHT">
+                <Button text="Add Task" onAction="#addTask" styleClass="primary-button"/>
+                <Button text="Update Task" onAction="#updateTask" styleClass="secondary-button"/>
+                <Button text="Delete Task" onAction="#deleteTask" styleClass="danger-button"/>
+                <Button text="Clear" onAction="#clearForm" styleClass="secondary-button"/>
+            </HBox>
+        </VBox>
+    </VBox>
+
+    <!-- Task List Card -->
+    <VBox styleClass="card" VBox.vgrow="ALWAYS">
+        <Label text="Tasks" styleClass="section-title"/>
+        <!-- Keep the original TableView structure -->
+        <TableView fx:id="taskTableView" onMouseClicked="#onTaskSelected" styleClass="modern-table" VBox.vgrow="ALWAYS">
+            <columns>
+                <TableColumn fx:id="titleColumn" text="Title" prefWidth="150"/>
+                <TableColumn fx:id="descriptionColumn" text="Description" prefWidth="200"/>
+                <TableColumn fx:id="dueDateColumn" text="Due Date" prefWidth="100"/>
+                <TableColumn fx:id="statusColumn" text="Status" prefWidth="100"/>
+            </columns>
+        </TableView>
+    </VBox>
+</VBox>
