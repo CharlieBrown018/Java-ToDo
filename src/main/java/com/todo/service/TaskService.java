@@ -1,70 +1,132 @@
 package com.todo.service;
 
-import com.todo.dao.TaskDAO;
-import com.todo.dao.TaskDAOImpl;
-import com.todo.enums.Status;
 import com.todo.model.Task;
+import com.todo.repository.TaskRepository;
+import com.todo.enums.Status;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeParseException;
 import java.util.List;
 
-// Bridge between the DAO layer and the UI/Controller
+/**
+ * Service layer for Task management.
+ * Handles business logic and coordinates repository operations.
+ * Uses @Transactional for data consistency.
+ */
+@Service
+@RequiredArgsConstructor  // Lombok: Generates constructor for final fields
+@Transactional  // Ensures database operations occur in transactions
 public class TaskService {
-    private final TaskDAO taskDAO;
 
-    public TaskService() {
-        this.taskDAO = new TaskDAOImpl();
-    }
+    // Final field for constructor injection
+    private final TaskRepository taskRepository;
 
-    // Add a new task (with validation)
-    public void addTask(String title, String description, String dueDate) {
+    /**
+     * Creates a new task.
+     * Validates input and sets default values.
+     *
+     * @param title       required task title
+     * @param description optional task description
+     * @param dueDate     optional due date (as string)
+     * @return the created task
+     * @throws IllegalArgumentException if title is empty
+     */
+    public Task addTask(String title, String description, String dueDate) {
         if (title == null || title.trim().isEmpty()) {
             throw new IllegalArgumentException("Task title cannot be empty.");
         }
 
-        Task task = new Task();
-        task.setTitle(title);
-        task.setDescription(description);
-
-        // Parse the date if it exists
+        LocalDate parsedDueDate = null;
         if (dueDate != null && !dueDate.isEmpty()) {
-            task.setDueDate(LocalDate.parse(dueDate));  // Changed to LocalDate parse
+            // Handle potential time component in date string
+            if (dueDate.contains("T")) {
+                dueDate = dueDate.substring(0, dueDate.indexOf("T"));
+            }
+            parsedDueDate = LocalDate.parse(dueDate);
         }
 
-        task.setStatus(Status.PENDING);
-        task.setCreatedAt(LocalDateTime.now());
+        Task task = new Task(
+                title.trim(),
+                description != null ? description.trim() : null,
+                parsedDueDate
+        );
 
-        taskDAO.insert(task);
+        return taskRepository.save(task);
     }
 
-    // Update an existing task
-    public void updateTask(Task task) {
+    /**
+     * Updates an existing task.
+     * Validates input and ensures task exists.
+     *
+     * @param task the task to update with new values
+     * @return the updated task
+     * @throws IllegalArgumentException if task or ID is null
+     */
+    public Task updateTask(Task task) {
         if (task == null || task.getId() == null) {
-            throw new IllegalArgumentException("Task ID is required for updating.");
+            throw new IllegalArgumentException("Task and ID are required for updating.");
         }
-        taskDAO.update(task);
+
+        // Verify task exists
+        taskRepository.findById(task.getId())
+                .orElseThrow(() -> new IllegalArgumentException("Task not found with ID: " + task.getId()));
+
+        return taskRepository.save(task);
     }
 
-    // Delete a task by ID
+    /**
+     * Deletes a task by ID.
+     *
+     * @param id the ID of the task to delete
+     * @throws IllegalArgumentException if task doesn't exist
+     */
     public void deleteTask(int id) {
-        taskDAO.delete(id);
+        if (!taskRepository.existsById(id)) {
+            throw new IllegalArgumentException("Task not found with ID: " + id);
+        }
+        taskRepository.deleteById(id);
     }
 
-    // Get a task by ID
+    /**
+     * Retrieves a task by ID.
+     *
+     * @param id the ID of the task to retrieve
+     * @return the task if found
+     * @throws IllegalArgumentException if task doesn't exist
+     */
     public Task getTaskById(int id) {
-        return taskDAO.findById(id);
+        return taskRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Task not found with ID: " + id));
     }
 
-    // Get all tasks
+    /**
+     * Retrieves all tasks.
+     *
+     * @return list of all tasks
+     */
     public List<Task> getAllTasks() {
-        return taskDAO.findAll();
+        return taskRepository.findAll();
     }
 
-    // Get tasks by status (Pending, Completed)
+    /**
+     * Retrieves tasks by status.
+     *
+     * @param status the status to filter by
+     * @return list of tasks with the specified status
+     */
     public List<Task> getTasksByStatus(Status status) {
-        return taskDAO.findByStatus(status);
+        return taskRepository.findByStatus(status);
     }
 
+    /**
+     * Searches for tasks by title.
+     *
+     * @param title the title to search for
+     * @return list of tasks with matching titles
+     */
+    public List<Task> searchTasksByTitle(String title) {
+        return taskRepository.findByTitleContainingIgnoreCase(title);
+    }
 }

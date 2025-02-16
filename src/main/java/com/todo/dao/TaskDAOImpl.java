@@ -125,7 +125,7 @@ public class TaskDAOImpl implements TaskDAO {
             if (!createdAtStr.contains("T")) {
                 createdAtStr = createdAtStr.replace(" ", "T");
             }
-            task.setCreatedAt(LocalDateTime.parse(createdAtStr));
+            task.setCreatedAt(LocalDate.parse(createdAtStr));
         }
 
         return task;

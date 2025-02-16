@@ -5,17 +5,24 @@ import com.todo.model.Task;
 import com.todo.service.TaskService;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Controller;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
-// Handles UI events and calls TaskService methods
+/**
+ * JavaFX Controller integrated with Spring Boot.
+ * Handles UI events and coordinates with TaskService.
+ */
+@Controller
+@RequiredArgsConstructor
 public class MainController {
-    private final TaskService taskService = new TaskService();
-    private Task selectedTask; // Stores currently selected task
+
+    private final TaskService taskService;
+    private Task selectedTask;
 
     @FXML private TextField titleField;
     @FXML private TextArea descriptionField;
@@ -27,72 +34,101 @@ public class MainController {
     @FXML private TableColumn<Task, String> statusColumn;
     @FXML private TableColumn<Task, String> dueDateColumn;
 
-    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    private static final DateTimeFormatter DATE_FORMAT =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
+    /**
+     * Initializes the controller.
+     * Called after FXML fields are populated.
+     */
     @FXML
     public void initialize() {
-        // Populate the status dropdown with displayNames
+        setupStatusComboBox();
+        setupTableColumns();
+        refreshTaskList();
+    }
+
+    /**
+     * Sets up the status dropdown with enum values
+     */
+    private void setupStatusComboBox() {
         statusComboBox.getItems().setAll(Status.values());
         statusComboBox.setPromptText("Select Status");
+    }
 
-        // Modern table bindings
+    /**
+     * Configures table columns with cell value factories
+     */
+    private void setupTableColumns() {
         titleColumn.setCellValueFactory(data ->
                 new SimpleStringProperty(data.getValue().getTitle()));
+
         descriptionColumn.setCellValueFactory(data ->
                 new SimpleStringProperty(data.getValue().getDescription()));
+
         statusColumn.setCellValueFactory(data ->
-                new SimpleStringProperty(data.getValue().getStatus().getDisplayName()));
+                new SimpleStringProperty(data.getValue().getStatus().name()));
+
         dueDateColumn.setCellValueFactory(data ->
                 new SimpleStringProperty(data.getValue().getDueDate() != null ?
                         data.getValue().getDueDate().format(DATE_FORMAT) : "No date"));
 
-        // Make columns fill width
-        titleColumn.prefWidthProperty().bind(taskTableView.widthProperty().multiply(0.3));
-        descriptionColumn.prefWidthProperty().bind(taskTableView.widthProperty().multiply(0.4));
-        dueDateColumn.prefWidthProperty().bind(taskTableView.widthProperty().multiply(0.15));
-        statusColumn.prefWidthProperty().bind(taskTableView.widthProperty().multiply(0.15));
+        setupTableColumnWidths();
+    }
 
-        // Add some padding to cells
+    /**
+     * Sets up table column widths
+     */
+    private void setupTableColumnWidths() {
+        titleColumn.prefWidthProperty().bind(
+                taskTableView.widthProperty().multiply(0.3));
+        descriptionColumn.prefWidthProperty().bind(
+                taskTableView.widthProperty().multiply(0.4));
+        dueDateColumn.prefWidthProperty().bind(
+                taskTableView.widthProperty().multiply(0.15));
+        statusColumn.prefWidthProperty().bind(
+                taskTableView.widthProperty().multiply(0.15));
+
         taskTableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-
-        refreshTaskList();
     }
 
-    // Populate fields when selecting a task
-    private void populateTaskFields(Task task) {
-        selectedTask = task;
-        titleField.setText(task.getTitle());
-        descriptionField.setText(task.getDescription());
-        dueDatePicker.setValue(task.getDueDate() != null ? task.getDueDate() : null);
-        statusComboBox.setValue(task.getStatus());
-    }
-
-    // Handle adding a task
+    /**
+     * Handles adding a new task
+     */
     @FXML
     private void addTask() {
         String title = titleField.getText().trim();
         String description = descriptionField.getText().trim();
-        LocalDate dueDate = dueDatePicker.getValue();  // DatePicker directly gives LocalDate
+        LocalDate dueDate = dueDatePicker.getValue();
 
         if (title.isEmpty()) {
-            showAlert("Validation Error", "Task title cannot be empty!", Alert.AlertType.ERROR);
+            showAlert("Validation Error",
+                    "Task title cannot be empty!",
+                    Alert.AlertType.ERROR);
             return;
         }
 
         try {
-            taskService.addTask(title, description, dueDate != null ? dueDate.toString() : null);
+            taskService.addTask(title, description,
+                    dueDate != null ? dueDate.toString() : null);
             refreshTaskList();
             clearInputFields();
         } catch (Exception e) {
-            showAlert("Error", "Failed to add task: " + e.getMessage(), Alert.AlertType.ERROR);
+            showAlert("Error",
+                    "Failed to add task: " + e.getMessage(),
+                    Alert.AlertType.ERROR);
         }
     }
 
-    // Update an existing task
+    /**
+     * Handles updating an existing task
+     */
     @FXML
     private void updateTask() {
         if (selectedTask == null) {
-            showAlert("No Selection", "Please select a task to update.", Alert.AlertType.WARNING);
+            showAlert("No Selection",
+                    "Please select a task to update.",
+                    Alert.AlertType.WARNING);
             return;
         }
 
@@ -102,29 +138,37 @@ public class MainController {
         Status status = statusComboBox.getValue();
 
         if (title.isEmpty()) {
-            showAlert("Validation Error", "Task title cannot be empty!", Alert.AlertType.ERROR);
+            showAlert("Validation Error",
+                    "Task title cannot be empty!",
+                    Alert.AlertType.ERROR);
             return;
         }
 
-        selectedTask.setTitle(title);
-        selectedTask.setDescription(description);
-        selectedTask.setDueDate(dueDate);  // Now directly using LocalDate
-        selectedTask.setStatus(status);
-
         try {
+            selectedTask.setTitle(title);
+            selectedTask.setDescription(description);
+            selectedTask.setDueDate(dueDate);
+            selectedTask.setStatus(status);
+
             taskService.updateTask(selectedTask);
             refreshTaskList();
             taskTableView.getSelectionModel().select(selectedTask);
         } catch (Exception e) {
-            showAlert("Error", "Failed to update task: " + e.getMessage(), Alert.AlertType.ERROR);
+            showAlert("Error",
+                    "Failed to update task: " + e.getMessage(),
+                    Alert.AlertType.ERROR);
         }
     }
 
-    // Delete selected task
+    /**
+     * Handles deleting a task
+     */
     @FXML
     private void deleteTask() {
         if (selectedTask == null) {
-            showAlert("No Selection", "Please select a task to delete.", Alert.AlertType.WARNING);
+            showAlert("No Selection",
+                    "Please select a task to delete.",
+                    Alert.AlertType.WARNING);
             return;
         }
 
@@ -135,40 +179,64 @@ public class MainController {
 
         confirmDialog.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
-                taskService.deleteTask(selectedTask.getId());
-                refreshTaskList();
-                clearInputFields();
+                try {
+                    taskService.deleteTask(selectedTask.getId());
+                    refreshTaskList();
+                    clearInputFields();
+                } catch (Exception e) {
+                    showAlert("Error",
+                            "Failed to delete task: " + e.getMessage(),
+                            Alert.AlertType.ERROR);
+                }
             }
         });
     }
 
-    // Refresh the task table with data from the database
+    /**
+     * Refreshes the task table with current data
+     */
     private void refreshTaskList() {
-        ObservableList<Task> tasks = FXCollections.observableArrayList(taskService.getAllTasks());
-        int selectedIndex = taskTableView.getSelectionModel().getSelectedIndex();
-        taskTableView.setItems(tasks);
+        try {
+            var tasks = FXCollections.observableArrayList(
+                    taskService.getAllTasks());
+            int selectedIndex = taskTableView.getSelectionModel()
+                    .getSelectedIndex();
+            taskTableView.setItems(tasks);
 
-        if (selectedIndex >= 0 && selectedIndex < tasks.size()) {
-            taskTableView.getSelectionModel().select(selectedIndex);
+            if (selectedIndex >= 0 && selectedIndex < tasks.size()) {
+                taskTableView.getSelectionModel().select(selectedIndex);
+            }
+        } catch (Exception e) {
+            showAlert("Error",
+                    "Failed to refresh tasks: " + e.getMessage(),
+                    Alert.AlertType.ERROR);
         }
     }
 
+    /**
+     * Handles task selection in the table
+     */
     @FXML
     private void onTaskSelected() {
         selectedTask = taskTableView.getSelectionModel().getSelectedItem();
-
         if (selectedTask != null) {
-            titleField.setText(selectedTask.getTitle());
-            descriptionField.setText(selectedTask.getDescription());
-            dueDatePicker.setValue(
-                    selectedTask.getDueDate() != null ? selectedTask.getDueDate() : null
-            );
-            statusComboBox.setValue(selectedTask.getStatus());
+            populateFormWithTask(selectedTask);
         }
     }
 
+    /**
+     * Populates form fields with task data
+     */
+    private void populateFormWithTask(Task task) {
+        titleField.setText(task.getTitle());
+        descriptionField.setText(task.getDescription());
+        dueDatePicker.setValue(task.getDueDate());
+        statusComboBox.setValue(task.getStatus());
+    }
 
-    // Show alert popups
+    /**
+     * Shows alert dialog
+     */
     private void showAlert(String title, String message, Alert.AlertType type) {
         Alert alert = new Alert(type);
         alert.setTitle(title);
@@ -176,18 +244,20 @@ public class MainController {
         alert.show();
     }
 
-    // Clear input fields
+    /**
+     * Clears all input fields
+     */
+    @FXML
+    private void clearForm() {
+        clearInputFields();
+    }
+
     private void clearInputFields() {
         titleField.clear();
         descriptionField.clear();
         dueDatePicker.setValue(null);
         statusComboBox.setValue(null);
-        selectedTask = null; // Reset selected task
-        taskTableView.getSelectionModel().clearSelection(); // clear selection when adding new task
-    }
-
-    @FXML
-    private void clearForm() {
-        clearInputFields();
+        selectedTask = null;
+        taskTableView.getSelectionModel().clearSelection();
     }
 }
