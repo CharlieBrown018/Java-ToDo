@@ -32,13 +32,6 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
-        <!-- Spring Web MVC for configuring Cors and other web configurations -->
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-webmvc</artifactId>
-            <version>5.3.27</version>
-        </dependency>
-
         <!-- Spring Data JPA -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

@@ -1,0 +1,6 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Segoe UI", "SF Pro Text", Arial, sans-serif;
+  --spacing: 0.25rem;
+}

@@ -18,7 +18,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/tasks")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:3000") // Allow React frontend requests
 public class TaskRestController {
     // Inject the existing TaskService
     private final TaskService taskService;
